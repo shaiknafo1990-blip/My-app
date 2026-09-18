@@ -1,0 +1,6 @@
+{
+  "appId": "com.shai.cnccalc",
+  "appName": "CNC Calculator",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

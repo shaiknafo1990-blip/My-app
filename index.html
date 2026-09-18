@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון תנאי שיבוב</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3a8a">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Heebo', sans-serif;
+            background-color: #f8fafc;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-style { transition: all 0.2s ease-in-out; }
+        .input-style:focus {
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+            border-color: #2563eb;
+            outline: none;
+        }
+
+        optgroup {
+            font-weight: 800;
+            color: #1e3a8a;
+            background-color: #f1f5f9;
+        }
+        option {
+            font-weight: 500;
+            color: #334155;
+            background-color: #ffffff;
+        }
+        option[disabled] {
+            color: #94a3b8;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-3 md:p-6 text-gray-800">
+
+    <main class="glass-card w-full max-w-4xl rounded-3xl overflow-hidden flex flex-col">
+        
+        <header class="bg-gradient-to-l from-blue-800 to-indigo-900 text-white p-6 md:p-8 text-center shadow-md relative overflow-hidden">
+            <div class="absolute inset-0 bg-black opacity-10 pattern-dots"></div>
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight relative z-10">מחשבון תנאי שיבוב</h1>
+            <p class="mt-2 text-blue-200 font-medium relative z-10">מערכת חכמה לחישוב S ו-F, עומסי חיתוך ואופטימיזציה</p>
+        </header>
+
+        <div class="p-6 md:p-8 flex-grow">
+            <form id="calculatorForm" class="space-y-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                    
+                    <div class="space-y-2 md:col-span-2 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                        <label for="machineType" class="block text-sm font-bold text-blue-900">סוג פעולה / מכונה</label>
+                        <select id="machineType" class="input-style w-full p-3 bg-white border border-blue-300 rounded-xl text-blue-900 font-bold" required>
+                            <option value="milling" selected>כרסום (Milling)</option>
+                            <option value="turning">חריטה (Turning)</option>
+                            <option value="drilling">קידוח (Drilling)</option>
+                            <option value="tapping">הברזה - מברז (Tapping)</option>
+                            <option value="thread_milling">כרסום הברגה (Thread Milling)</option>
+                            <option value="grinding">השחזה (Grinding)</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5 border-b border-gray-200 pb-5">
+                        <div class="space-y-2">
+                            <label for="materialType" class="block text-sm font-medium text-gray-700">סוג החומר (ISO)</label>
+                            <select id="materialType" class="input-style w-full p-3 bg-white border border-gray-300 rounded-xl text-gray-900 text-right" required>
+                                <optgroup label="פלדה (Steel)">
+                                    <option value="p_non_alloy" selected>P 1-5: פלדה לא מסוגסגת ופלדת יציקה</option>
+                                    <option value="p_low_alloy">P 6-9: פלדה בסגסוג נמוך (< 5%)</option>
+                                    <option value="p_high_alloy">P 10-11: פלדה בסגסוג גבוה ופלדת כלים</option>
+                                    <option value="p_stainless">P 12-13: פלדת אל-חלד (פריטית/מרטנסיטית)</option>
+                                </optgroup>
+                                <option disabled>───────────────────────────</option>
+                                <optgroup label="נירוסטה (Stainless Steel)">
+                                    <option value="m_austenitic">M 14: פלדת אל-חלד (אוסטניטית, דופלקס)</option>
+                                </optgroup>
+                                <option disabled>───────────────────────────</option>
+                                <optgroup label="יציקות ברזל (Cast Iron)">
+                                    <option value="k_grey">K 15-16: יציקת ברזל אפור (GG)</option>
+                                    <option value="k_nodular">K 17-18: יציקת ברזל נודולרי (GGG)</option>
+                                    <option value="k_malleable">K 19: יציקת ברזל חשיל</option>
+                                </optgroup>
+                                <option disabled>───────────────────────────</option>
+                                <optgroup label="אלומיניום (Aluminium)">
+                                    <option value="n_alu">N 21-30: אלומיניום וחומרים לא-ברזליים</option>
+                                </optgroup>
+                                <option disabled>───────────────────────────</option>
+                                <optgroup label="סגסוגות-על (Super Alloys)">
+                                    <option value="s_super">S 31-37: סגסוגות על וטיטניום (Titanium)</option>
+                                </optgroup>
+                                <option disabled>───────────────────────────</option>
+                                <optgroup label="חומרים קשים (Hardened)">
+                                    <option value="h_hard">H 38-44: חומרים קשים / מחוסמים</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">שם החומר</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="materialSquare" value="4340" class="peer sr-only">
+                                    <div class="text-center p-2.5 rounded-xl border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 font-bold text-gray-600 transition text-sm">4340</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="materialSquare" value="H13" class="peer sr-only">
+                                    <div class="text-center p-2.5 rounded-xl border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 font-bold text-gray-600 transition text-sm">H13</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="materialSquare" value="O1" class="peer sr-only">
+                                    <div class="text-center p-2.5 rounded-xl border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 font-bold text-gray-600 transition text-sm">O1</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="materialSquare" value="general" class="peer sr-only" checked>
+                                    <div class="text-center p-2.5 rounded-xl border-2 border-gray-200 peer-checked:border-gray-500 peer-checked:bg-gray-100 peer-checked:text-gray-800 font-bold text-gray-500 transition text-sm">כללי</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="materialCondition" class="block text-sm font-medium text-gray-700">מצב החומר</label>
+                        <select id="materialCondition" class="input-style w-full p-3 bg-white border border-gray-300 rounded-xl text-gray-900 text-right">
+                            <option value="annealed" selected>מרופה (Annealed)</option>
+                            <option value="quenched_tempered">מחוסם ומורפה</option>
+                            <option value="ferritic_martensitic">פריטי / מרטנסיטי</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2 border-l border-gray-200 pl-4 md:pl-0 md:border-l-0">
+                        <label class="block text-sm font-medium text-gray-700">קשיות חומר (משפיע על Vc ו-Fz)</label>
+                        <div class="flex gap-3">
+                            <input type="number" id="hardnessValue" step="0.1" min="0" class="input-style flex-[2] p-3 bg-white border border-gray-300 rounded-xl text-gray-900" placeholder="הזן ערך (למשל: 40)">
+                            <select id="hardnessUnit" class="input-style flex-1 p-3 bg-white border border-gray-300 rounded-xl text-gray-900 font-bold">
+                                <option value="HRC">HRC</option>
+                                <option value="HB">HB</option>
+                                <option value="HV">HV</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="threadSelectionContainer" class="hidden bg-fuchsia-50 p-5 rounded-2xl border border-fuchsia-200">
+                    <label for="threadStandard" class="block text-sm font-bold text-fuchsia-900 mb-2">בחירת הברגה מטרית</label>
+                    <select id="threadStandard" class="input-style w-full p-3 bg-white border border-fuchsia-300 rounded-xl text-fuchsia-900 font-bold mb-4">
+                        <option value="custom" selected>-- התאמה אישית (הזן נתונים ידנית) --</option>
+                        <option value="M2">M2 (פסיעה 0.4)</option>
+                        <option value="M2.5">M2.5 (פסיעה 0.45)</option>
+                        <option value="M3">M3 (פסיעה 0.5)</option>
+                        <option value="M4">M4 (פסיעה 0.7)</option>
+                        <option value="M5">M5 (פסיעה 0.8)</option>
+                        <option value="M6">M6 (פסיעה 1.0)</option>
+                        <option value="M8">M8 (פסיעה 1.25)</option>
+                        <option value="M10">M10 (פסיעה 1.5)</option>
+                        <option value="M12">M12 (פסיעה 1.75)</option>
+                        <option value="M16">M16 (פסיעה 2.0)</option>
+                    </select>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label for="threadDiameter" class="block text-sm font-bold text-fuchsia-700">קוטר ההברגה (D_thread)</label>
+                            <input type="number" id="threadDiameter" step="0.01" min="0.1" class="input-style w-full p-3 bg-white border border-fuchsia-300 rounded-xl text-gray-900" placeholder='במ"מ'>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="pitch" class="block text-sm font-bold text-fuchsia-700">פסיעה (Pitch)</label>
+                            <input type="number" id="pitch" step="0.01" min="0.01" class="input-style w-full p-3 bg-white border border-fuchsia-300 rounded-xl text-gray-900" placeholder='במ"מ'>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="space-y-2 md:col-span-2" id="diameterContainer">
+                        <label for="diameter" id="labelDiameter" class="block text-sm font-bold text-gray-700">קוטר כלי (D) במ"מ</label>
+                        <input type="number" id="diameter" step="0.01" class="input-style w-full p-3 bg-white border border-gray-300 rounded-xl text-gray-900" placeholder="למשל: 12" required>
+                    </div>
+
+                    <div class="space-y-2" id="teethContainer">
+                        <label for="teeth" id="labelTeeth" class="block text-sm font-bold text-gray-700">מספר שיניים (Z)</label>
+                        <input type="number" id="teeth" step="1" min="1" class="input-style w-full p-3 bg-white border border-gray-300 rounded-xl text-gray-900" placeholder="למשל: 4">
+                    </div>
+                    
+                    <div class="space-y-2" id="radiusContainer">
+                        <label for="radius" class="block text-sm font-bold text-gray-700">רדיוס פינה (R)</label>
+                        <input type="number" id="radius" step="0.05" min="0" class="input-style w-full p-3 bg-white border border-gray-300 rounded-xl text-gray-900" placeholder="0.2">
+                    </div>
+
+                    <div class="space-y-2 md:col-span-4" id="toolGradeContainer">
+                        <label class="block text-sm font-bold text-gray-700">ציפוי ותכונות הכלי (ניתן לסמן מספר אפשרויות)</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <label class="cursor-pointer">
+                                <input type="checkbox" name="gradeCb" value="IC900" class="peer sr-only">
+                                <div class="text-center p-3 rounded-xl border-2 border-gray-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-800 font-bold text-gray-600 transition text-sm">IC900</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" name="gradeCb" value="IC903" class="peer sr-only">
+                                <div class="text-center p-3 rounded-xl border-2 border-gray-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-800 font-bold text-gray-600 transition text-sm">IC903</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" name="gradeCb" value="CF" class="peer sr-only">
+                                <div class="text-center p-3 rounded-xl border-2 border-gray-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-800 font-bold text-gray-600 transition text-sm">CF</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" name="gradeCb" value="UF" class="peer sr-only">
+                                <div class="text-center p-3 rounded-xl border-2 border-gray-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-800 font-bold text-gray-600 transition text-sm">UF</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 hidden md:col-span-2" id="threadDirectionContainer">
+                        <label for="threadDirection" class="block text-sm font-bold text-gray-700">כיוון הברגה</label>
+                        <select id="threadDirection" class="input-style w-full p-3 bg-white border border-gray-300 rounded-xl text-gray-900 text-right">
+                            <option value="none" selected>בחר כיוון...</option>
+                            <option value="M51">ימני (M51)</option>
+                            <option value="M52">שמאלי (M52)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 grid grid-cols-1 gap-5" id="operationTypeWrapper">
+                    
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-indigo-900 mb-2">אסטרטגיית עיבוד (CAM Strategy)</label>
+                        <div class="grid grid-cols-2 md:grid-cols-3 bg-white p-2 rounded-xl shadow-sm border border-indigo-100 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="strategy" value="face" class="peer sr-only" checked>
+                                <div class="h-full flex items-center justify-center text-center p-2 rounded-lg peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 font-bold transition-all text-xs md:text-sm border border-transparent peer-checked:border-indigo-700 hover:bg-indigo-50">כרסום מצח</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="strategy" value="shoulder" class="peer sr-only">
+                                <div class="h-full flex items-center justify-center text-center p-2 rounded-lg peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 font-bold transition-all text-xs md:text-sm border border-transparent peer-checked:border-indigo-700 hover:bg-indigo-50">כרסום כתף (שני משטחים בו זמנית)</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="strategy" value="shoulder_modular" class="peer sr-only">
+                                <div class="h-full flex items-center justify-center text-center p-2 rounded-lg peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 font-bold transition-all text-xs md:text-sm border border-transparent peer-checked:border-indigo-700 hover:bg-indigo-50">כרסום כתף מודולרי (מולטי מאסטר)</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="strategy" value="side" class="peer sr-only">
+                                <div class="h-full flex items-center justify-center text-center p-2 rounded-lg peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 font-bold transition-all text-xs md:text-sm border border-transparent peer-checked:border-indigo-700 hover:bg-indigo-50">כרסום צדי</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="strategy" value="plunge" class="peer sr-only">
+                                <div class="h-full flex items-center justify-center text-center p-2 rounded-lg peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 font-bold transition-all text-xs md:text-sm border border-transparent peer-checked:border-indigo-700 hover:bg-indigo-50">כרסום צלילה (מקדח)</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="coolantType" class="block text-sm font-bold text-indigo-900">סוג נוזל קירור</label>
+                        <select id="coolantType" class="input-style w-full p-3 bg-white border border-indigo-200 rounded-xl text-gray-900 text-right font-medium">
+                            <option value="dry">עבודה יבשה (Dry)</option>
+                            <option value="air">לחץ אוויר (Air Blast)</option>
+                            <option value="flood" selected>אמולסיה חיצונית (Flood Emulsion)</option>
+                            <option value="internal">קירור פנימי דרך הכלי (Internal)</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <details class="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" id="advancedDepthDetails">
+                    <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-gray-800 hover:bg-gray-50 transition-colors">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 01-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            עומקי חיתוך ויציבות (לא חובה)
+                        </span>
+                        <span class="transition-transform duration-300 group-open:rotate-180 text-gray-400">
+                            <svg fill="none" height="24" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                        </span>
+                    </summary>
+                    <div class="p-5 pt-2 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-5 bg-gray-50">
+                        <div class="space-y-2">
+                            <label for="apDepth" class="block text-xs font-bold text-gray-700">עומק חיתוך צירי נדרש (Ap)</label>
+                            <input type="number" id="apDepth" step="0.1" min="0" class="input-style w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm" placeholder='במ"מ'>
+                        </div>
+                        <div class="space-y-2" id="aeContainer">
+                            <label for="aeDepth" class="block text-xs font-bold text-gray-700">רוחב חיתוך רדיאלי צדי (Ae)</label>
+                            <input type="number" id="aeDepth" step="0.1" min="0" class="input-style w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm" placeholder='במ"מ'>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="rigidity" class="block text-xs font-bold text-gray-700">קשיחות מערכת ויציבות</label>
+                            <select id="rigidity" class="input-style w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm">
+                                <option value="high" selected>גבוהה (דפינה חזקה)</option>
+                                <option value="medium">בינונית</option>
+                                <option value="low">נמוכה (סכנת רעידות)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="overhang" class="block text-xs font-bold text-gray-700">אורך הבלטת הכלי (Overhang)</label>
+                            <input type="number" id="overhang" step="1" min="0" class="input-style w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm" placeholder='במ"מ'>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" id="manualOverrideDetails">
+                    <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-gray-800 hover:bg-gray-50 transition-colors">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                            הזנת תנאים ידנית מהקטלוג
+                        </span>
+                        <span class="transition-transform duration-300 group-open:rotate-180 text-gray-400">
+                            <svg fill="none" height="24" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                        </span>
+                    </summary>
+                    <div class="p-5 pt-2 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-5 bg-purple-50">
+                        <div class="space-y-2" id="manualVcContainer">
+                            <label for="manualVc" class="block text-xs font-bold text-purple-900">מהירות חיתוך מומלצת - Vc (מטר/דקה)</label>
+                            <input type="number" id="manualVc" step="0.1" min="0" class="input-style w-full p-2.5 bg-white border border-purple-200 rounded-lg text-sm" placeholder="לדרוס ברירת מחדל">
+                        </div>
+                        <div class="space-y-2" id="manualFzContainer">
+                            <label for="manualFz" id="labelManualFz" class="block text-xs font-bold text-purple-900">קידמה לשן - Fz (מ"מ/שן)</label>
+                            <input type="number" id="manualFz" step="0.001" min="0" class="input-style w-full p-2.5 bg-white border border-purple-200 rounded-lg text-sm" placeholder="לדרוס ברירת מחדל">
+                        </div>
+                    </div>
+                </details>
+
+                <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                    <button type="submit" class="flex-[3] bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-lg py-4 rounded-2xl shadow-lg shadow-blue-500/30 transform transition duration-200 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-blue-300 flex justify-center items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        חשב תנאי שיבוב אופטימליים
+                    </button>
+                    <button type="reset" id="resetBtn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 font-bold text-lg py-4 px-4 rounded-2xl transition duration-200 flex justify-center items-center gap-2" title="אפס את כל הנתונים">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        ניקוי
+                    </button>
+                </div>
+            </form>
+
+            <div id="resultsSection" class="mt-8 hidden opacity-0 transition-opacity duration-500 ease-in-out">
+                <div class="border-t-2 border-dashed border-gray-200 pt-8">
+                    
+                    <div id="validationAlert" class="hidden"></div>
+
+                    <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg" id="sLabelBox">סל"ד בציר</div>
+                            <span class="text-4xl lg:text-5xl font-black text-blue-900 mt-2" id="resultRpm">0</span>
+                            <span class="text-sm font-bold text-blue-700 mt-2" id="sUnitsLabel">S [rev/min]</span>
+                        </div>
+                        
+                        <div id="fResultBox" class="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-2xl border border-emerald-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg" id="fLabelBox">קצב קידמה שולחן</div>
+                            <span class="text-4xl lg:text-5xl font-black text-emerald-900 mt-2" id="resultFeed">0</span>
+                            <span class="text-sm font-bold text-emerald-700 mt-2" id="fUnitsLabel">F [mm/min]</span>
+                        </div>
+                        
+                        <div id="preDrillBox" class="hidden bg-gradient-to-br from-fuchsia-50 to-pink-50 p-6 rounded-2xl border border-fuchsia-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-fuchsia-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">קוטר קדח הכנסה</div>
+                            <span class="text-4xl lg:text-5xl font-black text-fuchsia-900 mt-2" id="resultPreDrill">0</span>
+                            <span class="text-sm font-bold text-fuchsia-700 mt-2">D [mm]</span>
+                        </div>
+
+                        <div id="zPitchBox" class="hidden bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl border border-amber-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">פסיעה לציר Z</div>
+                            <span class="text-4xl lg:text-5xl font-black text-amber-900 mt-2" id="resultZPitch">0</span>
+                            <span class="text-sm font-bold text-amber-700 mt-2">Step [mm/360°]</span>
+                        </div>
+
+                        <div id="hmBox" class="hidden bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-2xl border border-indigo-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">עובי שבב ממוצע</div>
+                            <span class="text-4xl lg:text-5xl font-black text-indigo-900 mt-2" id="resultHm">0</span>
+                            <span class="text-sm font-bold text-indigo-700 mt-2">hm [mm]</span>
+                        </div>
+                        
+                        <div id="mrrBox" class="hidden bg-gradient-to-br from-purple-50 to-violet-50 p-6 rounded-2xl border border-purple-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">קצב פינוי חומר</div>
+                            <span class="text-4xl lg:text-5xl font-black text-purple-900 mt-2" id="resultMrr">0</span>
+                            <span class="text-sm font-bold text-purple-700 mt-2">Q [cm³/min]</span>
+                        </div>
+                    </div>
+
+                    <div id="tipContainer" class="mt-5 bg-white border border-gray-200 p-5 rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            ניתוח חומר והמלצות לוגיקה
+                        </h3>
+                        <ul id="tipsList" class="list-disc list-inside text-sm text-gray-600 space-y-2"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('calculatorForm');
+            const machineTypeSelect = document.getElementById('machineType');
+            
+            const operationTypeWrapper = document.getElementById('operationTypeWrapper');
+            const teethContainer = document.getElementById('teethContainer');
+            const radiusContainer = document.getElementById('radiusContainer');
+            const toolGradeContainer = document.getElementById('toolGradeContainer');
+            const aeContainer = document.getElementById('aeContainer');
+            const threadSelectionContainer = document.getElementById('threadSelectionContainer');
+            const threadDirectionContainer = document.getElementById('threadDirectionContainer');
+            const diameterContainer = document.getElementById('diameterContainer');
+            
+            const labelDiameter = document.getElementById('labelDiameter');
+            const labelTeeth = document.getElementById('labelTeeth');
+            const labelManualFz = document.getElementById('labelManualFz');
+            const teethInput = document.getElementById('teeth');
+            const pitchInput = document.getElementById('pitch');
+            const threadDiameterInput = document.getElementById('threadDiameter');
+            const threadStandardSelect = document.getElementById('threadStandard');
+            const mainDiameterInput = document.getElementById('diameter');
+            
+            const fUnitsLabel = document.getElementById('fUnitsLabel');
+            const validationAlert = document.getElementById('validationAlert');
+
+            const threadDatabase = {
+                'M2': { d: 2.0, pitch: 0.4 }, 'M2.5': { d: 2.5, pitch: 0.45 },
+                'M3': { d: 3.0, pitch: 0.5 }, 'M4': { d: 4.0, pitch: 0.7 },
+                'M5': { d: 5.0, pitch: 0.8 }, 'M6': { d: 6.0, pitch: 1.0 },
+                'M8': { d: 8.0, pitch: 1.25 }, 'M10': { d: 10.0, pitch: 1.5 },
+                'M12': { d: 12.0, pitch: 1.75 }, 'M16': { d: 16.0, pitch: 2.0 }
+            };
+
+            const materialsData = {
+                'p_non_alloy': { vc: 180, fz: 0.15, grindingVs: 30 },
+                'p_low_alloy': { vc: 150, fz: 0.12, grindingVs: 30 },
+                'p_high_alloy': { vc: 90, fz: 0.10, grindingVs: 25 },
+                'p_stainless': { vc: 110, fz: 0.10, grindingVs: 25 },
+                'm_austenitic': { vc: 80, fz: 0.08, grindingVs: 25 },
+                'k_grey': { vc: 160, fz: 0.18, grindingVs: 35 },
+                'k_nodular': { vc: 130, fz: 0.15, grindingVs: 35 },
+                'k_malleable': { vc: 140, fz: 0.15, grindingVs: 35 },
+                'n_alu': { vc: 400, fz: 0.20, grindingVs: 40 },
+                's_super': { vc: 40, fz: 0.05, grindingVs: 20 },
+                'h_hard': { vc: 30, fz: 0.05, grindingVs: 15 }
+            };
+
+            function normalizeMaterialHardness(value, unit) {
+                if (!value || value <= 0) return null;
+                let hb = 0, hrc = 0, hv = 0, rm = 0;
+                switch(unit) {
+                    case 'HB': hb = value; hv = hb * 1.05; hrc = (hb > 220) ? (hb - 220) / 10 + 20 : 0; break;
+                    case 'HV': hv = value; hb = hv * 0.95; hrc = (hv > 240) ? (hv - 240) / 10 + 20 : 0; break;
+                    case 'HRC': hrc = value; hb = 220 + (hrc - 20) * 10; hv = hb * 1.05; break;
+                }
+                rm = hb * 3.4;
+                return { hb: Math.round(hb), hrc: Math.round(hrc * 10) / 10, hv: Math.round(hv), rm: Math.round(rm) };
+            }
+
+            form.addEventListener('reset', () => {
+                const resSection = document.getElementById('resultsSection');
+                resSection.classList.add('opacity-0');
+                setTimeout(() => {
+                    resSection.classList.add('hidden');
+                    machineTypeSelect.dispatchEvent(new Event('change'));
+                }, 300);
+            });
+
+            threadStandardSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val !== 'custom' && threadDatabase[val]) {
+                    threadDiameterInput.value = threadDatabase[val].d;
+                    pitchInput.value = threadDatabase[val].pitch;
+                } else {
+                    threadDiameterInput.value = '';
+                    pitchInput.value = '';
+                }
+            });
+
+            machineTypeSelect.addEventListener('change', (e) => {
+                const type = e.target.value;
+                
+                teethInput.removeAttribute('required');
+                mainDiameterInput.removeAttribute('required');
+                threadDiameterInput.removeAttribute('required');
+                pitchInput.removeAttribute('required');
+                
+                labelDiameter.textContent = 'קוטר כלי (D) במ"מ';
+                labelTeeth.textContent = 'מספר שיניים (Z)';
+                labelManualFz.textContent = 'קידמה לשן (Fz)';
+                
+                operationTypeWrapper.classList.remove('hidden');
+                teethContainer.classList.add('hidden');
+                aeContainer.classList.add('hidden');
+                radiusContainer.classList.add('hidden');
+                toolGradeContainer.classList.add('hidden');
+                threadSelectionContainer.classList.add('hidden');
+                threadDirectionContainer.classList.add('hidden');
+                
+                diameterContainer.classList.remove('hidden');
+                document.getElementById('advancedDepthDetails').style.display = 'block';
+                document.getElementById('manualFzContainer').style.display = 'block';
+                
+                if (type === 'milling') {
+                    teethContainer.classList.remove('hidden');
+                    aeContainer.classList.remove('hidden');
+                    radiusContainer.classList.remove('hidden');
+                    toolGradeContainer.classList.remove('hidden');
+                    teethInput.setAttribute('required', 'true');
+                    mainDiameterInput.setAttribute('required', 'true');
+                } 
+                else if (type === 'turning') {
+                    aeContainer.classList.remove('hidden'); 
+                    radiusContainer.classList.remove('hidden');
+                    mainDiameterInput.setAttribute('required', 'true');
+                    labelDiameter.textContent = 'קוטר החלק המעובד במ"מ';
+                    operationTypeWrapper.classList.add('hidden');
+                } 
+                else if (type === 'drilling') {
+                    labelDiameter.textContent = 'קוטר מקדח (DC)';
+                    labelManualFz.textContent = 'קידמה לסיבוב (Fn)';
+                    mainDiameterInput.setAttribute('required', 'true');
+                    operationTypeWrapper.classList.add('hidden');
+                } 
+                else if (type === 'tapping') {
+                    threadSelectionContainer.classList.remove('hidden');
+                    operationTypeWrapper.classList.add('hidden');
+                    diameterContainer.classList.add('hidden');
+                    document.getElementById('advancedDepthDetails').style.display = 'none';
+                    document.getElementById('manualFzContainer').style.display = 'none';
+                    threadDiameterInput.setAttribute('required', 'true');
+                    pitchInput.setAttribute('required', 'true');
+                } 
+                else if (type === 'thread_milling') {
+                    threadSelectionContainer.classList.remove('hidden');
+                    teethContainer.classList.remove('hidden'); 
+                    threadDirectionContainer.classList.remove('hidden');
+                    operationTypeWrapper.classList.add('hidden');
+                    document.getElementById('advancedDepthDetails').style.display = 'none';
+                    labelDiameter.textContent = 'קוטר חיתוך (CUTDIA)';
+                    labelTeeth.textContent = 'מספר חריצי חיתוך (NOF)';
+                    mainDiameterInput.setAttribute('required', 'true');
+                    teethInput.setAttribute('required', 'true');
+                    threadDiameterInput.setAttribute('required', 'true');
+                    pitchInput.setAttribute('required', 'true');
+                } 
+                else if (type === 'grinding') {
+                    labelDiameter.textContent = 'קוטר אופן ההשחזה (מ"מ)';
+                    mainDiameterInput.setAttribute('required', 'true');
+                    operationTypeWrapper.classList.add('hidden');
+                    document.getElementById('advancedDepthDetails').style.display = 'none';
+                    document.getElementById('manualFzContainer').style.display = 'none';
+                }
+            });
+
+            machineTypeSelect.dispatchEvent(new Event('change'));
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const selectedMatSquare = document.querySelector('input[name="materialSquare"]:checked')?.value || "general";
+                const selectedGrades = Array.from(document.querySelectorAll('input[name="gradeCb"]:checked')).map(cb => cb.value);
+
+                const advancedInputData = {
+                    material: {
+                        key: document.getElementById('materialType').value,
+                        name: selectedMatSquare,
+                        condition: document.getElementById('materialCondition').value,
+                        hardness: normalizeMaterialHardness(
+                            parseFloat(document.getElementById('hardnessValue').value),
+                            document.getElementById('hardnessUnit').value
+                        )
+                    },
+                    tool: {
+                        diameter: parseFloat(mainDiameterInput.value) || 0,
+                        flutes: parseInt(teethInput.value) || 1,
+                        corner_radius: parseFloat(document.getElementById('radius').value) || 0,
+                        grades: selectedGrades
+                    },
+                    environment: {
+                        strategy: document.querySelector('input[name="strategy"]:checked')?.value || 'face',
+                        coolant: document.getElementById('coolantType').value || 'flood'
+                    },
+                    geometry: {
+                        ap: parseFloat(document.getElementById('apDepth').value) || 0,
+                        ae: parseFloat(document.getElementById('aeDepth').value) || 0,
+                        overhang: parseFloat(document.getElementById('overhang').value) || 0,
+                        rigidity: document.getElementById('rigidity').value
+                    },
+                    thread: {
+                        diameter: parseFloat(threadDiameterInput.value) || 0,
+                        pitch: parseFloat(pitchInput.value) || 0,
+                        direction: document.getElementById('threadDirection').value
+                    }
+                };
+
+                const machine = document.getElementById('machineType').value;
+                const manualVc = document.getElementById('manualVc').value;
+                const manualFz = document.getElementById('manualFz').value;
+
+                let baseVc = materialsData[advancedInputData.material.key].vc;
+                let baseFz = materialsData[advancedInputData.material.key].fz;
+                
+                let tips = [];
+                let isManual = false;
+                let conditionModifierVc = 1.0;
+                let conditionModifierFz = 1.0;
+                let isHardMaterial = false;
+
+                if (advancedInputData.material.hardness) {
+                    const hp = advancedInputData.material.hardness;
+                    isHardMaterial = hp.hb > 350 || hp.hrc > 38;
+                    tips.push(`🔬 ניתוח חומר: קשיות מנורמלת <b>~${hp.hb} HB</b>, חוזק מתיחה מקורב (Rm) <b>~${hp.rm} MPa</b>.`);
+                    if (isHardMaterial) {
+                        conditionModifierVc *= 0.8;
+                        tips.push("<span class='text-orange-600 font-bold'>עומס קשיות:</span> הופחתה מהירות החיתוך (Vc) בשל קשיות חומר גבוהה.");
+                    }
+                } else if (advancedInputData.material.condition === 'quenched_tempered') {
+                    isHardMaterial = true;
+                    conditionModifierVc *= 0.75; conditionModifierFz *= 0.90;
+                    tips.push("<span class='text-orange-600 font-bold'>חומר מחוסם:</span> תנאי החיתוך הופחתו לשמירה על הכלי.");
+                }
+
+                if (advancedInputData.material.name === 'H13') {
+                    conditionModifierVc *= 0.85; conditionModifierFz *= 0.9;
+                    tips.push("🔥 <b>פלדת כלים H13:</b> החומר מאופיין בעמידות גבוהה לחום ולשחיקה. מהירות החיתוך והקידמה הופחתו.");
+                } else if (advancedInputData.material.name === 'O1') {
+                    conditionModifierVc *= 0.90;
+                    tips.push("🛠️ <b>פלדת כלים O1:</b> הופעלה הפחתה קלה במהירות החיתוך בהתחשב בקשיחות הבסיס.");
+                } else if (advancedInputData.material.name === '4340') {
+                    conditionModifierVc *= 0.95;
+                    tips.push("⚙️ <b>פלדת סגסוגת 4340:</b> חושבו תנאים אופטימליים עם התאמת סל\"ד קלה.");
+                }
+
+                if (advancedInputData.tool.grades.length > 0) {
+                    let gradeTips = [];
+                    if (advancedInputData.tool.grades.includes('IC903')) {
+                        conditionModifierVc *= 1.15; gradeTips.push("IC903 (מתאים למהירויות גבוהות)");
+                    } else if (advancedInputData.tool.grades.includes('IC900')) {
+                        gradeTips.push("IC900 (סטנדרט מעולה לכרסום כללי)");
+                    }
+                    if (advancedInputData.tool.grades.includes('UF')) {
+                        conditionModifierFz *= 1.05; gradeTips.push("UF (משפר עמידות שפה וספיגת עומס)");
+                    }
+                    if (advancedInputData.tool.grades.includes('CF')) {
+                        conditionModifierVc *= 1.05; gradeTips.push("CF (משפר יציבות וטיב שטח)");
+                    }
+                    tips.push(`💎 <b>השפעת בחירת הכלי:</b> זוהו התכונות: ${gradeTips.join(' + ')}. התנאים הותאמו.`);
+                }
+
+                if (machine === 'milling') {
+                    if (advancedInputData.environment.coolant === 'flood' && isHardMaterial) {
+                        conditionModifierVc *= 0.8;
+                        tips.push("<span class='text-red-600 font-bold'>⚠️ אזהרת הלם תרמי:</span> שימוש באמולסיה חיצונית (Flood) בכרסום חומר קשה גורם לסדקים תרמיים. ה-Vc הופחת ב-20%. <b>מומלץ לשנות לקירור אוויר!</b>");
+                    } else if (advancedInputData.environment.coolant === 'internal') {
+                        conditionModifierVc *= 1.1;
+                        tips.push("💧 <b>קירור פנימי:</b> הוגדלה מהירות חיתוך ב-10% תודות לפינוי שבבים וקירור יעילים.");
+                    }
+                }
+
+                if (machine === 'milling') {
+                    if (advancedInputData.environment.strategy === 'face') {
+                        conditionModifierFz *= 0.8;
+                        tips.push("✨ <b>כרסום מצח:</b> הקידמה הופחתה מעט לקבלת טיב שטח נקי יותר במישור התחתון.");
+                    } else if (advancedInputData.environment.strategy === 'shoulder') {
+                        conditionModifierVc *= 0.95;
+                        tips.push("📐 <b>כרסום כתף:</b> עיבוד שני משטחים בו זמנית מגדיל את העומס הרדיאלי והצירי. הופחתה מעט מהירות החיתוך.");
+                    } else if (advancedInputData.environment.strategy === 'shoulder_modular') {
+                        tips.push("🔄 <b>כרסום כתף מודולרי (מולטי מאסטר):</b> המערכת המודולרית דורשת חיבור נקי ומהודק היטב למניעת רעידות.");
+                    } else if (advancedInputData.environment.strategy === 'plunge') {
+                        conditionModifierFz *= 0.5;
+                        conditionModifierVc *= 0.8;
+                        tips.push("⬇️ <b>כרסום צלילה:</b> מופעל עומס צירי גבוה על הכלי. מהירות החיתוך והקידמה הופחתו משמעותית. חובה להשתמש בפינוי שבבים יעיל.");
+                    } else if (advancedInputData.environment.strategy === 'side') {
+                        conditionModifierVc *= 1.05;
+                        tips.push("➡️ <b>כרסום צדי:</b> עבודה רדיאלית בלבד. במידה וה-Ae קטן מחצי קוטר, המערכת תבצע פיצוי לקידמה לשן (hm).");
+                    }
+                }
+
+                let targetVc = baseVc * conditionModifierVc;
+                let targetFz = baseFz * conditionModifierFz;
+
+                if (manualVc || manualFz) {
+                    isManual = true;
+                    if (manualVc) targetVc = parseFloat(manualVc);
+                    if (manualFz) targetFz = parseFloat(manualFz);
+                    tips.push("הוזנו נתונים מקטלוג: חישוב מתבצע לפי הערכים שהזנת, ללא החלת המקדמים האוטומטיים.");
+                }
+
+                const preDrillBox = document.getElementById('preDrillBox');
+                const zPitchBox = document.getElementById('zPitchBox');
+                const hmBox = document.getElementById('hmBox');
+                const mrrBox = document.getElementById('mrrBox');
+                const resultsGrid = document.getElementById('resultsGrid');
+                const sLabelBox = document.getElementById('sLabelBox');
+                const fLabelBox = document.getElementById('fLabelBox');
+                const sUnitsLabel = document.getElementById('sUnitsLabel');
+                const fResultBox = document.getElementById('fResultBox');
+                
+                preDrillBox.classList.add('hidden');
+                zPitchBox.classList.add('hidden');
+                hmBox.classList.add('hidden');
+                mrrBox.classList.add('hidden');
+                validationAlert.classList.add('hidden');
+                
+                resultsGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-5';
+                fResultBox.style.display = 'flex';
+                sLabelBox.textContent = "סל\"ד בציר";
+                fLabelBox.textContent = "קצב קידמה שולחן";
+                sUnitsLabel.textContent = "S [rev/min]";
+                fUnitsLabel.textContent = "F [mm/min]"; 
+
+                let S = 0; let F = 0;
+                let hasCriticalError = false;
+
+                const D_tool = advancedInputData.tool.diameter;
+                const D_thread = advancedInputData.thread.diameter;
+                const pitch = advancedInputData.thread.pitch;
+
+                if (machine === 'tapping') {
+                    S = 100;
+                    F = pitch; 
+                    const preDrill = D_thread - pitch;
+                    fUnitsLabel.textContent = "F [mm/rev]";
+                    resultsGrid.className = 'grid grid-cols-1 md:grid-cols-3 gap-5';
+                    preDrillBox.classList.remove('hidden');
+                    document.getElementById('resultPreDrill').textContent = preDrill.toFixed(2);
+                    tips.push("<span class='text-fuchsia-600 font-bold'>פעולה צירית:</span> הברזה מסונכרנת (G84). הסל\"ד קבוע ל-100 והקידמה לסיבוב שווה לפסיעה.");
+                } 
+                else if (machine === 'thread_milling') {
+                    const preDrill = D_thread - pitch;
+                    if (D_tool >= preDrill) {
+                        hasCriticalError = true;
+                        validationAlert.className = 'p-4 mb-6 rounded-xl border font-bold bg-red-50 text-red-700 border-red-200 block';
+                        validationAlert.innerHTML = `⚠️ שגיאה: קוטר הכרסם (CUTDIA = ${D_tool}) גדול מדי ואינו יכול להיכנס לקדח ההכנסה (${preDrill.toFixed(2)} מ"מ).`;
+                    } else if (D_tool > D_thread * 0.75) {
+                        validationAlert.className = 'p-4 mb-6 rounded-xl border font-bold bg-amber-50 text-amber-700 border-amber-200 block';
+                        validationAlert.innerHTML = `💡 המלצת יצרנים: קוטר הכרסם המיטבי להברגה פנימית צריך להיות עד 70% מקוטר ההברגה בשל פינוי שבבים.`;
+                    }
+
+                    if (!hasCriticalError) {
+                        S = (targetVc * 1000) / (Math.PI * D_tool);
+                        let Vf_basic = S * advancedInputData.tool.flutes * targetFz;
+                        F = Vf_basic * ((D_thread - D_tool) / D_thread);
+                        tips.push(`<span class='text-fuchsia-600 font-bold'>פיצוי קידמה:</span> קצב הקידמה המוצג מחושב **למרכז הכלי** (Vf_compensated).`);
+                        if (advancedInputData.thread.direction !== 'none') {
+                            tips.push(`הוגדר כיוון הברגה **${advancedInputData.thread.direction === 'M51' ? 'ימני (M51)' : 'שמאלי (M52)'}**.`);
+                        }
+                    }
+                    fLabelBox.textContent = "קידמה למרכז הכלי";
+                    resultsGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5';
+                    preDrillBox.classList.remove('hidden');
+                    document.getElementById('resultPreDrill').textContent = preDrill.toFixed(2);
+                    zPitchBox.classList.remove('hidden');
+                    document.getElementById('resultZPitch').textContent = pitch.toFixed(2);
+                }
+                else if (machine === 'drilling') {
+                    let fn = isManual && manualFz ? parseFloat(manualFz) : targetFz;
+                    let currentVc = isManual && manualVc ? parseFloat(manualVc) : targetVc;
+                    if (D_tool <= 0 || currentVc <= 0 || fn <= 0) {
+                        hasCriticalError = true;
+                        validationAlert.className = 'p-4 mb-6 rounded-xl border font-bold bg-red-50 text-red-700 border-red-200 block';
+                        validationAlert.innerHTML = `⚠️ שגיאה: יש להזין ערכים תקינים וגדולים מ-0.`;
+                    } else {
+                        S = (currentVc * 1000) / (Math.PI * D_tool);
+                        F = S * fn;
+                        let mrr = (Math.PI * Math.pow(D_tool, 2) / 4) * F / 1000;
+                        resultsGrid.className = 'grid grid-cols-1 md:grid-cols-3 gap-5';
+                        mrrBox.classList.remove('hidden');
+                        document.getElementById('resultMrr').textContent = mrr.toFixed(1);
+                        tips.push("💡 המלצה: ודא שימוש בלחץ נוזל קירור מתאים (רצוי קירור פנימי) להבטחת פינוי שבבים תקין.");
+                    }
+                }
+                else if (machine === 'grinding') {
+                    let vs = isManual && manualVc ? parseFloat(manualVc) : materialsData[advancedInputData.material.key].grindingVs;
+                    S = (vs * 60 * 1000) / (Math.PI * D_tool);
+                    fResultBox.style.display = 'none';
+                    sLabelBox.textContent = "סל\"ד אופן השחזה";
+                    tips.push(`מהירות אופן ההשחזה (Vs) המחושבת היא ${vs} מטר/שנייה.`);
+                }
+                else if (machine === 'milling') {
+                    const ae = advancedInputData.geometry.ae;
+                    const ap = advancedInputData.geometry.ap;
+                    const overhang = advancedInputData.geometry.overhang;
+
+                    if (ae > D_tool) {
+                        hasCriticalError = true;
+                        validationAlert.className = 'p-4 mb-6 rounded-xl border font-bold bg-red-50 text-red-700 border-red-200 block';
+                        validationAlert.innerHTML = `⚠️ שגיאה: רוחב החיתוך הצדי (Ae) אינו יכול להיות גדול מקוטר הכלי.`;
+                    } else {
+                        if (!isManual && overhang > 0 && D_tool > 0) {
+                            let ldRatio = overhang / D_tool;
+                            if (ldRatio > 3 && ldRatio <= 5) { targetVc *= 0.8; targetFz *= 0.8; tips.push(`כלי בולט (L/D=${ldRatio.toFixed(1)}): התנאים הופחתו למניעת רעידות.`); }
+                            else if (ldRatio > 5) { targetVc *= 0.5; targetFz *= 0.5; tips.push(`<span class='text-red-600 font-bold'>סכנת צ'אטר (L/D=${ldRatio.toFixed(1)}):</span> כלי ארוך מאוד! הפחתה משמעותית של S ו-F.`); }
+                        }
+
+                        S = (targetVc * 1000) / (Math.PI * D_tool);
+                        F = S * advancedInputData.tool.flutes * targetFz;
+                        
+                        if (ae > 0) {
+                            let hm = targetFz;
+                            if ((ae / D_tool) < 0.5) {
+                                hm = targetFz * Math.sqrt(ae / D_tool);
+                                tips.push("💡 ה-Ae קטן מחצי קוטר הכלי. חושב נתון <b>עובי שבב ממוצע (hm)</b> - המייצג תופעת הידקקות שבב (Chip Thinning).");
+                            }
+                            document.getElementById('resultHm').textContent = hm.toFixed(3);
+                            hmBox.classList.remove('hidden');
+                        }
+                        
+                        if (ap > 0 && ae > 0) {
+                            let Q = (ap * ae * F) / 1000;
+                            document.getElementById('resultMrr').textContent = Q.toFixed(1);
+                            mrrBox.classList.remove('hidden');
+                        }
+                        
+                        let visibleBoxes = 2; 
+                        if (ae > 0) visibleBoxes++;
+                        if (ap > 0 && ae > 0) visibleBoxes++;
+                        if(visibleBoxes === 3) resultsGrid.className = 'grid grid-cols-1 md:grid-cols-3 gap-5';
+                        else if(visibleBoxes === 4) resultsGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5';
+                    }
+                }
+                else { // turning
+                    S = (targetVc * 1000) / (Math.PI * D_tool);
+                    F = S * targetFz; 
+                }
+
+                if (hasCriticalError) {
+                    document.getElementById('resultRpm').textContent = 'N/A';
+                    document.getElementById('resultFeed').textContent = 'N/A';
+                } else {
+                    document.getElementById('resultRpm').textContent = Math.round(S).toLocaleString();
+                    document.getElementById('resultFeed').textContent = machine === 'tapping' ? F : Math.round(F).toLocaleString();
+                }
+                
+                if (tips.length === 0 && !hasCriticalError) tips.push("התנאים חושבו בהצלחה לפי פרמטרי הבסיס.");
+                document.getElementById('tipsList').innerHTML = tips.map(t => `<li>${t}</li>`).join('');
+
+                const resSection = document.getElementById('resultsSection');
+                resSection.classList.remove('hidden');
+                setTimeout(() => resSection.classList.remove('opacity-0', 'opacity-100'), 50);
+            });
+        });
+    </script>
+</body>
+</html>
